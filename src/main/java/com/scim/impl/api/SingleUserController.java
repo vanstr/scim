@@ -57,7 +57,6 @@ public class SingleUserController {
         }
     }
 
-
     @RequestMapping(value = "/{id}",method = RequestMethod.PUT)
     public @ResponseBody Map<String, Object> singleUserPut(@RequestBody Map<String, Object> payload,
                                            @PathVariable String id) {
