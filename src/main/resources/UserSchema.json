@@ -1,0 +1,106 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:core:2.0:Schema"
+  ],
+  "id": "urn:ietf:params:scim:schemas:core:2.0:User",
+  "meta": {
+    "resourceType": "Schema",
+    "created": "2024-04-11T00:00:00+00:00",
+    "lastModified": "2024-04-11T00:00:00+00:00",
+    "version": "W/\"5CF43FF3C1E0C85DE1F13305C3B1AC83009FF941\"",
+    "location": "{{BASE_URL}}/Schemas/urn:ietf:params:scim:schemas:core:2.0:User"
+  },
+  "name": "User",
+  "description": "User resource.",
+  "attributes": [
+    {
+      "name": "userName",
+      "description": "Unique identifier for the User, typically used by the user to directly authenticate to the service provider. Each User MUST include a non-empty userName value. This identifier MUST be unique across the service provider's entire set of Users. REQUIRED.",
+      "type": "string",
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "server",
+      "required": true,
+      "multiValued": false,
+      "caseExact": false
+    },
+    {
+      "name": "name",
+      "description": "The components of the user's real name. Providers MAY return just the full name as a single string in the formatted sub-attribute, or they MAY return just the individual component attributes using the other sub-attributes, or they MAY return both. If both variants are returned, they SHOULD be describing the same name, with the formatted name indicating how the component attributes should be combined.",
+      "type": "complex",
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none",
+      "required": false,
+      "multiValued": false,
+      "caseExact": false,
+      "subAttributes": [
+        {
+          "name": "formatted",
+          "description": "The full name, including all middle names, titles, and suffixes as appropriate, formatted for display (e.g., 'Ms. Barbara J Jensen, III').",
+          "type": "string",
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none",
+          "required": false,
+          "multiValued": false,
+          "caseExact": false
+        },
+        {
+          "name": "familyName",
+          "description": "The family name of the User, or last name in most Western languages (e.g., 'Jensen' given the full name 'Ms. Barbara J Jensen, III').",
+          "type": "string",
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none",
+          "required": false,
+          "multiValued": false,
+          "caseExact": false
+        },
+        {
+          "name": "givenName",
+          "description": "The given name of the User, or first name in most Western languages (e.g., 'Barbara' given the full name 'Ms. Barbara J Jensen, III').",
+          "type": "string",
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none",
+          "required": false,
+          "multiValued": false,
+          "caseExact": false
+        },
+        {
+          "name": "middleName",
+          "description": "The middle name(s) of the User (e.g., 'Jane' given the full name 'Ms. Barbara J Jensen, III').",
+          "type": "string",
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none",
+          "required": false,
+          "multiValued": false,
+          "caseExact": false
+        }
+      ]
+    },
+    {
+      "name": "displayName",
+      "description": "The name of the User, suitable for display to end-users. The name SHOULD be the full name of the User being described, if known.",
+      "type": "string",
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none",
+      "required": false,
+      "multiValued": false,
+      "caseExact": false
+    },
+    {
+      "name": "active",
+      "description": "A Boolean value indicating the User's administrative status.",
+      "type": "boolean",
+      "mutability": "readWrite",
+      "returned": "default",
+      "required": false,
+      "multiValued": false,
+      "caseExact": false
+    }
+  ]
+}
