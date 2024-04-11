@@ -1,7 +1,7 @@
 package com.scim.impl.service;
 
 import com.scim.impl.Database;
-import com.scim.impl.api.SingleUserController;
+import com.scim.impl.api.UserController;
 import com.scim.impl.api.dto.UserResponse;
 import com.scim.impl.domain.User;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,20 +36,20 @@ public class ScimUserService {
         return user.toScimResource();
     }
 
-    public Map<String, Object> patch(Map<String, Object> payload, String id, SingleUserController singleUserController) {
+    public Map<String, Object> patch(Map<String, Object> payload, String id) {
         List schema = (List) payload.get("schemas");
         List<Map> operations = (List) payload.get("Operations");
 
         if (schema == null) {
-            return singleUserController.scimError("Payload must contain schema attribute.", Optional.of(400));
+            return scimError("Payload must contain schema attribute.", Optional.of(400));
         }
         if (operations == null) {
-            return singleUserController.scimError("Payload must contain operations attribute.", Optional.of(400));
+            return scimError("Payload must contain operations attribute.", Optional.of(400));
         }
 
         String schemaPatchOp = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
         if (!schema.contains(schemaPatchOp)) {
-            return singleUserController.scimError("The 'schemas' type in this request is not supported.", Optional.of(501));
+            return scimError("The 'schemas' type in this request is not supported.", Optional.of(501));
         }
 
         User user = db.findById(id).get(0);
@@ -142,5 +139,16 @@ public class ScimUserService {
         db.save(newUser);
         response.setStatus(HttpStatus.CREATED.value());
         return newUser.toScimResource();
+    }
+
+    public Map<String, Object> scimError(String message, Optional<Integer> statusCode) {
+
+        Map<String, Object> returnValue = new HashMap<>();
+        List<String> schemas = List.of("urn:ietf:params:scim:api:messages:2.0:Error");
+        returnValue.put("schemas", schemas);
+        returnValue.put("detail", message);
+
+        returnValue.put("status", statusCode.orElse(500));
+        return returnValue;
     }
 }

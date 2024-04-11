@@ -23,17 +23,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/scim/Users")
-public class SingleUserController {
+public class UserController {
 
-    private final ScimUserService scimUserService;
+    public final ScimUserService scimUserService;
 
     @RequestMapping(method = RequestMethod.GET)
     public @ResponseBody Map usersGet(@RequestParam Map<String, String> params) {
@@ -53,7 +51,7 @@ public class SingleUserController {
             return scimUserService.getScimUser(id);
         } catch (Exception e) {
             response.setStatus(404);
-            return scimError("User not found", Optional.of(404));
+            return scimUserService.scimError("User not found", Optional.of(404));
         }
     }
 
@@ -67,17 +65,7 @@ public class SingleUserController {
     @RequestMapping(value = "/{id}",method = RequestMethod.PATCH)
     public @ResponseBody Map<String, Object> singleUserPatch(@RequestBody Map<String, Object> payload,
                                                              @PathVariable String id) {
-        return scimUserService.patch(payload, id, this);
+        return scimUserService.patch(payload, id);
     }
 
-    public Map<String, Object> scimError(String message, Optional<Integer> statusCode) {
-
-        Map<String, Object> returnValue = new HashMap<>();
-        List<String> schemas = List.of("urn:ietf:params:scim:api:messages:2.0:Error");
-        returnValue.put("schemas", schemas);
-        returnValue.put("detail", message);
-
-        returnValue.put("status", statusCode.orElse(500));
-        return returnValue;
-    }
 }
