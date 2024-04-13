@@ -36,17 +36,6 @@
       "caseExact": false,
       "subAttributes": [
         {
-          "name": "formatted",
-          "description": "The full name, including all middle names, titles, and suffixes as appropriate, formatted for display (e.g., 'Ms. Barbara J Jensen, III').",
-          "type": "string",
-          "mutability": "readWrite",
-          "returned": "default",
-          "uniqueness": "none",
-          "required": false,
-          "multiValued": false,
-          "caseExact": false
-        },
-        {
           "name": "familyName",
           "description": "The family name of the User, or last name in most Western languages (e.g., 'Jensen' given the full name 'Ms. Barbara J Jensen, III').",
           "type": "string",
@@ -67,30 +56,8 @@
           "required": false,
           "multiValued": false,
           "caseExact": false
-        },
-        {
-          "name": "middleName",
-          "description": "The middle name(s) of the User (e.g., 'Jane' given the full name 'Ms. Barbara J Jensen, III').",
-          "type": "string",
-          "mutability": "readWrite",
-          "returned": "default",
-          "uniqueness": "none",
-          "required": false,
-          "multiValued": false,
-          "caseExact": false
         }
       ]
-    },
-    {
-      "name": "displayName",
-      "description": "The name of the User, suitable for display to end-users. The name SHOULD be the full name of the User being described, if known.",
-      "type": "string",
-      "mutability": "readWrite",
-      "returned": "default",
-      "uniqueness": "none",
-      "required": false,
-      "multiValued": false,
-      "caseExact": false
     },
     {
       "name": "active",
