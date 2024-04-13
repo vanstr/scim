@@ -11,7 +11,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +20,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ScimUserService {
 
+    public static final int BAD_REQUEST = HttpStatus.BAD_REQUEST.value();
     private final Database db;
 
     public Map<String, Object> getScimUser(String id) {
@@ -35,15 +35,15 @@ public class ScimUserService {
         return user.toScimResource();
     }
 
-    public Map<String, Object> patch(Map<String, Object> payload, String id) {
+    public Map<String, Object> patch(Map<String, Object> payload, String id, HttpServletResponse response) {
         List schema = (List) payload.get("schemas");
         List<Map> operations = (List) payload.get("Operations");
 
         if (schema == null) {
-            return scimError("Payload must contain schema attribute.", Optional.of(400));
+            return scimError("Payload must contain schema attribute.", Optional.of(BAD_REQUEST));
         }
         if (operations == null) {
-            return scimError("Payload must contain operations attribute.", Optional.of(400));
+            return scimError("Payload must contain operations attribute.", Optional.of(BAD_REQUEST));
         }
 
         String schemaPatchOp = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
@@ -57,21 +57,44 @@ public class ScimUserService {
             if (map.get("op") == null && !map.get("op").equals("replace")) {
                 continue;
             }
-            Map<String, Object> value = (Map) map.get("value");
 
-            if (value != null) {
-                for (Map.Entry key : value.entrySet()) {
-                    try {
-                        Field field = user.getClass().getDeclaredField(key.getKey().toString());
-                        field.set(user, key.getValue());
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
-                        log.error("Failed o process patch", e);
+            if (map.containsKey("path")) {
+                String path = map.get("path").toString();
+                try {
+                    updateUserField(path, user, map.get("value"));
+                } catch (Exception e) {
+                    response.setStatus(BAD_REQUEST);
+                    return scimError(e.getMessage(), Optional.of(BAD_REQUEST));
+                }
+            } else {
+                Map<String, Object> value = (Map) map.get("value");
+                if (value != null) {
+                    for (Map.Entry key : value.entrySet()) {
+                        String fieldName = key.getKey().toString();
+                        try {
+                            updateUserField(fieldName, user, key.getValue());
+                        } catch (Exception e) {
+                            response.setStatus(BAD_REQUEST);
+                            return scimError(e.getMessage(), Optional.of(BAD_REQUEST));
+                        }
                     }
                 }
-                db.save(user);
             }
+            db.save(user);
         }
         return user.toScimResource();
+    }
+
+    private static void updateUserField(String fieldName, User user, Object value) {
+        switch (fieldName) {
+            case "active" -> user.setActive((Boolean) value);
+            case "userName" -> user.setUserName(value.toString());
+            case "name.familyName" -> user.setFamilyName(value.toString());
+            case "name.givenName" -> user.setGivenName(value.toString());
+            default -> {
+                throw new IllegalArgumentException("Invalid field - " + fieldName);
+            }
+        }
     }
 
     public Map<String, Object> get(Map<String, String> params) {
@@ -141,7 +164,7 @@ public class ScimUserService {
 
     public Map<String, Object> upsert(Map<String, Object> params, HttpServletResponse response) {
         Optional<User> userName = db.findByUserNameIgnoreCase(params.get("userName").toString(), PageRequest.of(0, 1)).get().findAny();
-        if(userName.isPresent()){
+        if (userName.isPresent()) {
             response.setStatus(HttpStatus.CONFLICT.value());
             return scimError("User already exists", Optional.of(409));
         }

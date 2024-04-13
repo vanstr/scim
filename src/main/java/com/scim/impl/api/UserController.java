@@ -64,17 +64,17 @@ public class UserController {
         }
     }
 
-    @RequestMapping(value = "/{id}",method = RequestMethod.PUT)
+    @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
     public @ResponseBody Map<String, Object> singleUserPut(@RequestBody Map<String, Object> payload,
-                                           @PathVariable String id) {
+                                                           @PathVariable String id) {
         return scimUserService.update(payload, id);
     }
 
 
-    @RequestMapping(value = "/{id}",method = RequestMethod.PATCH)
+    @RequestMapping(value = "/{id}", method = RequestMethod.PATCH)
     public @ResponseBody Map<String, Object> singleUserPatch(@RequestBody Map<String, Object> payload,
-                                                             @PathVariable String id) {
-        return scimUserService.patch(payload, id);
+                                                             @PathVariable String id, HttpServletResponse response) {
+        return scimUserService.patch(payload, id, response);
     }
 
 }
