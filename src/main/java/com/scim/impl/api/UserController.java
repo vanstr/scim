@@ -17,6 +17,7 @@
 package com.scim.impl.api;
 
 
+import com.scim.impl.service.ScimException;
 import com.scim.impl.service.ScimUserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -74,7 +75,15 @@ public class UserController {
     @RequestMapping(value = "/{id}", method = RequestMethod.PATCH)
     public @ResponseBody Map<String, Object> singleUserPatch(@RequestBody Map<String, Object> payload,
                                                              @PathVariable String id, HttpServletResponse response) {
-        return scimUserService.patch(payload, id, response);
+        try {
+            return scimUserService.patch(payload, id, response);
+        } catch (ScimException se) {
+            response.setStatus(se.getErrorCode());
+            return scimUserService.scimError(se.getMessage(), Optional.of(se.getErrorCode()));
+        } catch (Exception e) {
+            response.setStatus(500);
+            return scimUserService.scimError("Error" + e.getMessage(), Optional.of(500));
+        }
     }
 
 }

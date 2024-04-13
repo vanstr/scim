@@ -40,15 +40,15 @@ public class ScimUserService {
         List<Map> operations = (List) payload.get("Operations");
 
         if (schema == null) {
-            return scimError("Payload must contain schema attribute.", Optional.of(BAD_REQUEST));
+            throw new ScimException("Payload must contain schema attribute.", BAD_REQUEST);
         }
         if (operations == null) {
-            return scimError("Payload must contain operations attribute.", Optional.of(BAD_REQUEST));
+            throw new ScimException("Payload must contain operations attribute.", BAD_REQUEST);
         }
 
         String schemaPatchOp = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
         if (!schema.contains(schemaPatchOp)) {
-            return scimError("The 'schemas' type in this request is not supported.", Optional.of(501));
+            throw new ScimException("The 'schemas' type in this request is not supported.", 501);
         }
 
         User user = db.findById(id).get(0);
