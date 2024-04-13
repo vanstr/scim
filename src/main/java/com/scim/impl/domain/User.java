@@ -1,25 +1,9 @@
-/** Copyright © 2016, Okta, Inc.
- * 
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- * 
- *     http://www.apache.org/licenses/LICENSE-2.0
- * 
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
 package com.scim.impl.domain;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,37 +12,40 @@ import java.util.Map;
 
 
 @Entity
-@Table(name="users")
+@Getter
+@Setter
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = {"userName"}))
 public class User {
-    @Column(length=36)
+    @Column(length = 36)
     @Id
     public String id;
 
     @Column
     public Boolean active = false;
 
-    @Column(unique=true, nullable=false, length=250)
+    @Column(unique = true, nullable = false, length = 250)
     public String userName;
 
-    @Column(length=250)
+    @Column(length = 250)
     public String familyName;
 
-    @Column(length=250)
+    @Column(length = 250)
     public String middleName;
 
-    @Column(length=250)
+    @Column(length = 250)
     public String givenName;
 
-    public User() {}
+    public User() {
+    }
 
-    public User(Map<String, Object> resource){
+    public User(Map<String, Object> resource) {
         this.update(resource);
     }
 
     public void update(Map<String, Object> resource) {
-        try{
-            Map<String, Object> names = (Map<String, Object>)resource.get("name");
-            for(String subName : names.keySet()){
+        try {
+            Map<String, Object> names = (Map<String, Object>) resource.get("name");
+            for (String subName : names.keySet()) {
                 switch (subName) {
                     case "givenName" -> this.givenName = names.get(subName).toString();
                     case "familyName" -> this.familyName = names.get(subName).toString();
@@ -67,15 +54,15 @@ public class User {
                     }
                 }
             }
-          this.userName = resource.get("userName").toString();
-          this.active = (Boolean)resource.get("active");
-        } catch(Exception e) {
-             System.out.println(e);
+            this.userName = resource.get("userName").toString();
+            this.active = (Boolean) resource.get("active");
+        } catch (Exception e) {
+            System.out.println(e);
         }
     }
 
 
-    public Map<String, Object> toScimResource(){
+    public Map<String, Object> toScimResource() {
         Map<String, Object> returnValue = new HashMap<>();
         List<String> schemas = new ArrayList<>();
         schemas.add("urn:ietf:params:scim:schemas:core:2.0:User");

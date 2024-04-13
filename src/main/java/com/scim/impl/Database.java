@@ -19,7 +19,6 @@ import com.scim.impl.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -29,16 +28,12 @@ import java.util.List;
 public interface Database extends JpaRepository<User, Long> {
     List<User> findById(String id);
 
-    @Query("SELECT u FROM User u WHERE u.userName = :name")
-    Page<User> findByUsername(@Param("name") String name, Pageable pagable);
+    Page<User> findByUserNameIgnoreCase(@Param("name") String name, Pageable pagable);
 
-    @Query("SELECT u FROM User u WHERE u.active = :value")
     Page<User> findByActive(@Param("value") Boolean value, Pageable pagable);
 
-    @Query("SELECT u FROM User u WHERE u.givenName = :name")
-    Page<User> findByGivenName(@Param("name") String name, Pageable pagable);
+    Page<User> findByFamilyNameIgnoreCase(@Param("name") String name, Pageable pagable);
 
-    @Query("SELECT u FROM User u WHERE u.familyName = :name")
-    Page<User> findByFamilyName(@Param("name") String name, Pageable pagable);
+    Page<User> findByGivenNameIgnoreCase(@Param("name") String name, Pageable pagable);
 
 }

@@ -1,7 +1,6 @@
 package com.scim.impl.service;
 
 import com.scim.impl.Database;
-import com.scim.impl.api.UserController;
 import com.scim.impl.api.dto.UserResponse;
 import com.scim.impl.domain.User;
 import jakarta.servlet.http.HttpServletResponse;
@@ -69,7 +68,6 @@ public class ScimUserService {
                         log.error("Failed o process patch", e);
                     }
                 }
-                // TODO update
                 db.save(user);
             }
         }
@@ -96,9 +94,9 @@ public class ScimUserService {
                 String searchValue = match.group(2);
                 users = switch (searchKeyName) {
                     case "active" -> db.findByActive(Boolean.valueOf(searchValue), pageRequest);
-                    case "faimlyName" -> db.findByFamilyName(searchValue, pageRequest);
-                    case "givenName" -> db.findByGivenName(searchValue, pageRequest);
-                    default -> db.findByUsername(searchValue, pageRequest);
+                    case "faimlyName" -> db.findByFamilyNameIgnoreCase(searchValue, pageRequest);
+                    case "givenName" -> db.findByGivenNameIgnoreCase(searchValue, pageRequest);
+                    default -> db.findByUserNameIgnoreCase(searchValue, pageRequest);
                 };
             } else {
                 users = db.findAll(pageRequest);
@@ -142,6 +140,11 @@ public class ScimUserService {
     }
 
     public Map<String, Object> upsert(Map<String, Object> params, HttpServletResponse response) {
+        Optional<User> userName = db.findByUserNameIgnoreCase(params.get("userName").toString(), PageRequest.of(0, 1)).get().findAny();
+        if(userName.isPresent()){
+            response.setStatus(HttpStatus.CONFLICT.value());
+            return scimError("User already exists", Optional.of(409));
+        }
         User newUser = new User(params);
         newUser.id = UUID.randomUUID().toString();
         db.save(newUser);
