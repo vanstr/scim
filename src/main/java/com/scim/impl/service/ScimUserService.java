@@ -39,17 +39,7 @@ public class ScimUserService {
         List schema = (List) payload.get("schemas");
         List<Map> operations = (List) payload.get("Operations");
 
-        if (schema == null) {
-            throw new ScimException("Payload must contain schema attribute.", BAD_REQUEST);
-        }
-        if (operations == null) {
-            throw new ScimException("Payload must contain operations attribute.", BAD_REQUEST);
-        }
-
-        String schemaPatchOp = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
-        if (!schema.contains(schemaPatchOp)) {
-            throw new ScimException("The 'schemas' type in this request is not supported.", 501);
-        }
+        validation(schema, operations);
 
         User user = db.findById(id).get(0);
 
@@ -60,29 +50,32 @@ public class ScimUserService {
 
             if (map.containsKey("path")) {
                 String path = map.get("path").toString();
-                try {
-                    updateUserField(path, user, map.get("value"));
-                } catch (Exception e) {
-                    response.setStatus(BAD_REQUEST);
-                    return scimError(e.getMessage(), Optional.of(BAD_REQUEST));
-                }
+                updateUserField(path, user, map.get("value"));
             } else {
                 Map<String, Object> value = (Map) map.get("value");
                 if (value != null) {
                     for (Map.Entry key : value.entrySet()) {
                         String fieldName = key.getKey().toString();
-                        try {
-                            updateUserField(fieldName, user, key.getValue());
-                        } catch (Exception e) {
-                            response.setStatus(BAD_REQUEST);
-                            return scimError(e.getMessage(), Optional.of(BAD_REQUEST));
-                        }
+                        updateUserField(fieldName, user, key.getValue());
                     }
                 }
             }
             db.save(user);
         }
         return user.toScimResource();
+    }
+
+    private void validation(List schema, List<Map> operations) {
+        if (schema == null) {
+            throw new ScimException("Payload must contain schema attribute.", BAD_REQUEST);
+        }
+        if (operations == null) {
+            throw new ScimException("Payload must contain operations attribute.", BAD_REQUEST);
+        }
+        String schemaPatchOp = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
+        if (!schema.contains(schemaPatchOp)) {
+            throw new ScimException("The 'schemas' type in this request is not supported.", 501);
+        }
     }
 
     private static void updateUserField(String fieldName, User user, Object value) {
@@ -92,7 +85,7 @@ public class ScimUserService {
             case "name.familyName" -> user.setFamilyName(value.toString());
             case "name.givenName" -> user.setGivenName(value.toString());
             default -> {
-                throw new IllegalArgumentException("Invalid field - " + fieldName);
+                throw new ScimException("Invalid field - " + fieldName, 501);
             }
         }
     }
