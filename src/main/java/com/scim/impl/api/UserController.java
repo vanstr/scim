@@ -45,10 +45,19 @@ public class UserController {
 
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public @ResponseBody Map singeUserGet(@PathVariable String id, HttpServletResponse response) {
-
+    public @ResponseBody Map<String, Object> singeUserGet(@PathVariable String id, HttpServletResponse response) {
         try {
             return scimUserService.getScimUser(id);
+        } catch (Exception e) {
+            response.setStatus(404);
+            return scimUserService.scimError("User not found", Optional.of(404));
+        }
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
+    public @ResponseBody Map<String, Object> deleteUser(@PathVariable String id, HttpServletResponse response) {
+        try {
+            return scimUserService.deleteById(id);
         } catch (Exception e) {
             response.setStatus(404);
             return scimUserService.scimError("User not found", Optional.of(404));

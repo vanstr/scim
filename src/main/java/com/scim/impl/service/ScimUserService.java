@@ -118,6 +118,14 @@ public class ScimUserService {
         ).toScimResource();
     }
 
+    public Map<String, Object> deleteById(String id) {
+        log.info("Delete user by id {}", id);
+        User user = db.findById(id).get(0);
+        user.active = false;
+        User saved = db.save(user);
+        return saved.toScimResource();
+    }
+
 
     private int getCount(Map<String, String> params) {
         return (params.get("count") != null) ? Integer.parseInt(params.get("count")) : 100;
