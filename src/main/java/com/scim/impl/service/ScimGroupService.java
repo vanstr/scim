@@ -81,7 +81,7 @@ public class ScimGroupService {
                 dto.getExternalId(),
                 true,
                 dto.getDisplayName(),
-                String.join(",", dto.getMembers())
+                ""
         );
         db.save(newGroup);
         return new ScimGroupDto(newGroup);

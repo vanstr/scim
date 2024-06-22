@@ -7,10 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 @Setter
@@ -26,18 +23,18 @@ public class ScimGroupDto extends ScimResponseDto {
     private final String externalId;
     @JsonProperty("displayName")
     private final String displayName;
-    @JsonProperty("members")
-    private final List<String> members;
+//    @JsonProperty("members")
+//    private final List<String> members;
     @JsonProperty("meta")
     private final Map<String, Object> meta;
 
 
     public ScimGroupDto(Group group) {
-        this.schemas = List.of("urn:ietf:params:scim:schemas:core:2.0:User");
+        this.schemas = List.of("urn:ietf:params:scim:schemas:core:2.0:Group");
         this.id = group.getId();
         this.externalId = group.getExternalId();
         this.displayName = group.getName();
-        this.members = Arrays.stream(group.getMembers().split(",")).toList();
+//        this.members = new ArrayList<>();
         this.meta = new HashMap<>();
         meta.put("resourceType", "Group");
         meta.put("created", group.getCreated());
