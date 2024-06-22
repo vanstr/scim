@@ -15,6 +15,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.scim.impl.service.Helper.getCount;
+import static com.scim.impl.service.Helper.getStartIndex;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -140,20 +143,6 @@ public class ScimUserService {
         return saved.toScimResource();
     }
 
-
-    private int getCount(Map<String, String> params) {
-        return (params.get("count") != null) ? Integer.parseInt(params.get("count")) : 100;
-    }
-
-    private int getStartIndex(Map<String, String> params) {
-        int startIndex = (params.get("startIndex") != null) ? Integer.parseInt(params.get("startIndex")) : 1;
-
-        if (startIndex < 1) {
-            startIndex = 1;
-        }
-        startIndex -= 1;
-        return startIndex;
-    }
 
     public Map<String, Object> upsert(Map<String, Object> params, HttpServletResponse response) {
         Optional<User> userName = db.findByUserNameIgnoreCase(params.get("userName").toString(), PageRequest.of(0, 1)).get().findAny();
