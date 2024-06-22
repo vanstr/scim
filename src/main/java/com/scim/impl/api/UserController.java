@@ -29,7 +29,7 @@ import java.util.Optional;
 
 @Controller
 @RequiredArgsConstructor
-@RequestMapping("/scim/Users")
+@RequestMapping("/scim/v2/Users")
 public class UserController {
 
     public final ScimUserService scimUserService;
