@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 @RequestMapping("/scim/ResourceTypes")
 public class ResourceTypesController {
-    private static final String scimBaseUrl = "https://careful-logical-hippo.ngrok-free.app/scim";
 
     // Example: https://scim.dev/playground/resource-types.html
     private static String userResourceType = """
@@ -18,29 +17,48 @@ public class ResourceTypesController {
                 ],
                 "id": "User",
                 "name": "Users",
-                "endpoint": "{{BASE_URL}}/Users",
+                "endpoint": "/scim/v2/Users",
                 "description": "User Account",
                 "schema": "urn:ietf:params:scim:schemas:core:2.0:User",
                 "schemaExtensions": [],
                 "meta": {
-                    "location": "{{BASE_URL}}/ResourceTypes/User",
+                    "location": "/scim/v2/ResourceTypes/User",
                     "resourceType": "ResourceType"
                 }
-            }
-            """.replace("{{BASE_URL}}", scimBaseUrl);
+            })
+            """;
+    private static String groupResourceType = """
+            {
+                "schemas": [
+                    "urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+                ],
+                "id": "User",
+                "name": "Users",
+                "endpoint": "/scim/v2/Groups",
+                "description": "User groups",
+                "schema": "urn:ietf:params:scim:schemas:core:2.0:Group",
+                "schemaExtensions": [],
+                "meta": {
+                    "location": "/scim/v2/ResourceTypes/Group",
+                    "resourceType": "ResourceType"
+                }
+            })
+            """;
     private static String response = """
             {
-              "totalResults": 1,
-              "itemsPerPage": 1,
+              "totalResults": 2,
+              "itemsPerPage": 2,
               "startIndex": 1,
               "schemas": [
                 "urn:ietf:params:scim:api:messages:2.0:ListResponse"
               ],
               "Resources": [
-                    {{USER_RESOURCE_TYPE}}
+                    {{USER_RESOURCE_TYPE}},
+                    {{GROUP_RESOURCE_TYPE}}
               ]
             }          
-            """.replace("{{USER_RESOURCE_TYPE}}", userResourceType);
+            """.replace("{{USER_RESOURCE_TYPE}}", userResourceType)
+            .replace("{{GROUP_RESOURCE_TYPE}}", groupResourceType);
 
     @GetMapping(produces = "application/json")
     public @ResponseBody String getResourceTypes() {
@@ -50,5 +68,10 @@ public class ResourceTypesController {
     @GetMapping(value = "/User", produces = "application/json")
     public  @ResponseBody String getUsersResourceTypes() {
         return userResourceType;
+    }
+
+    @GetMapping(value = "/Group", produces = "application/json")
+    public  @ResponseBody String getGroupsResourceTypes() {
+        return groupResourceType;
     }
 }
