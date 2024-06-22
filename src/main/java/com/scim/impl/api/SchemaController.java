@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 @Controller
-@RequestMapping("/scim/Schemas")
+@RequestMapping("/scim/v2/Schemas")
 public class SchemaController {
     private static final String scimBaseUrl = "https://careful-logical-hippo.ngrok-free.app/scim";
 
