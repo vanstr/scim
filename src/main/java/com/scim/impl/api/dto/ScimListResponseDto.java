@@ -5,9 +5,9 @@ import lombok.Getter;
 
 import java.util.List;
 
-@Getter
 public class ScimListResponseDto extends ScimResponseDto {
 
+    @Getter
     @JsonProperty("schemas")
     private final List<String> schemas;
     @JsonProperty("totalResults")

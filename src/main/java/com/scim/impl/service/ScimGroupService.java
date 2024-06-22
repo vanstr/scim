@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.scim.impl.service.Helper.getCount;
 import static com.scim.impl.service.Helper.getStartIndex;
@@ -27,14 +29,34 @@ public class ScimGroupService {
 
     private final GroupDatabase db;
 
-    public ScimListResponseDto get(Map<String, String> requestParams) {
+    public ScimListResponseDto get(Map<String, String> params) {
 
-        int count = getCount(requestParams);
-        int startIndex = getStartIndex(requestParams);
+        int count = getCount(params);
+        int startIndex = getStartIndex(params);
         PageRequest pageRequest = PageRequest.of(startIndex, count);
 
-        // TODO add filtering
-        Page<Group> groups = db.findAll(pageRequest);
+        Page<Group> groups;
+        String filter = params.get("filter");
+        if (filter != null && filter.contains("eq")) {
+            String regex = "(\\w+) eq \"([^\"]*)\"";
+            Pattern response = Pattern.compile(regex);
+
+            Matcher match = response.matcher(filter);
+            if (match.find()) {
+                String searchKeyName = match.group(1);
+                String searchValue = match.group(2);
+                if (searchKeyName.equalsIgnoreCase("displayName")) {
+                    groups = db.findByNameIgnoreCase(searchValue, pageRequest);
+                }else{
+                    throw new ScimException("Unsupported filter key '" + searchKeyName + "'", HttpStatus.BAD_REQUEST.value());
+                }
+            } else {
+                groups = db.findAll(pageRequest);
+            }
+        } else {
+            groups = db.findAll(pageRequest);
+        }
+
 
         List<ScimGroupDto> foundUsers = groups.getContent().stream().map(ScimGroupDto::new).toList();
         long totalResults = foundUsers.size();

@@ -40,7 +40,7 @@ public class GroupController {
     }
 
     @GetMapping
-    public @ResponseBody ScimResponseDto groupsGet(
+    public @ResponseBody ScimResponseDto getGroups(
             @RequestParam Map<String, String> params,
             HttpServletResponse response
     ) {
@@ -58,7 +58,7 @@ public class GroupController {
     }
 
     @PostMapping
-    public @ResponseBody ScimResponseDto groupsPost(
+    public @ResponseBody ScimResponseDto createGroup(
             @RequestBody ScimGroupDto groupCreationRequest,
             HttpServletResponse response
     ) {
