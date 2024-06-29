@@ -2,10 +2,7 @@ package com.scim.impl.service;
 
 import com.scim.impl.GroupDatabase;
 import com.scim.impl.UserDatabase;
-import com.scim.impl.api.dto.ScimGroupDto;
-import com.scim.impl.api.dto.ScimListResponseDto;
-import com.scim.impl.api.dto.ScimPatchDto;
-import com.scim.impl.api.dto.ScimResponseDto;
+import com.scim.impl.api.dto.*;
 import com.scim.impl.domain.Group;
 import com.scim.impl.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -61,10 +58,11 @@ public class ScimGroupService {
             groups = db.findAll(pageRequest);
         }
 
-
+        String excludedAttributes = params.get("excludedAttributes");
+        boolean populateMembers = excludedAttributes == null || !excludedAttributes.equals("members");
         List<ScimGroupDto> foundUsers = groups.getContent().stream()
                 .sorted(Comparator.comparing(Group::getCreated))
-                .map(ScimGroupDto::new).toList();
+                .map(group -> new ScimGroupDto(group, populateMembers)).toList();
         long totalResults = foundUsers.size();
 
         return new ScimListResponseDto(
@@ -89,7 +87,7 @@ public class ScimGroupService {
                 dto.getDisplayName()
         );
         db.save(newGroup);
-        return new ScimGroupDto(newGroup);
+        return new ScimGroupDto(newGroup, false);
     }
 
     public ScimGroupDto patch(ScimPatchDto payload, String id) {
@@ -98,20 +96,25 @@ public class ScimGroupService {
         Group group = getValidGroupById(id);
         for (Map<String, Object> map : payload.getOperations()) {
             Object operation = map.get("op");
-            if (operation != null && map.get("path") != null && map.get("value") != null) {
+            Object valueObj = map.get("value");
+            if (operation != null && map.get("path") != null && valueObj != null) {
                 String path = map.get("path").toString();
-                String value = map.get("value").toString();
-                if(Objects.equals(operation, "Add") && Objects.equals(path, "members")){
-                    User user = getValidUser(value);
-                    group.getUsers().add(user);
+                if (Objects.equals(operation, "Add") && Objects.equals(path, "members")) {
+                    List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
+                    members.forEach(member -> {
+                        User user = getValidUser(member.get("value"));
+                        group.getUsers().add(user);
+                    });
                 } else if (Objects.equals(operation, "Remove") && Objects.equals(path, "members")) {
-                        group.getUsers().stream()
-                                .filter(user -> user.getId().equals(value))
-                                .findFirst().ifPresent(group.getUsers()::remove);
+                    List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
+                    members.forEach(member -> {
+                        group.getUsers().removeIf(user -> user.getId().equals(member.get("value")));
+                    });
+                } else if (operation.equals("Replace")) {
+                    String value = valueObj.toString();
 
-                }else if ( operation.equals("Replace")) {
                     if (Objects.equals(path, "displayName")) {
-                        group.setName( value);
+                        group.setName(value);
                     } else if (Objects.equals(path, "externalId")) {
                         group.setExternalId(value);
                     } else {
@@ -125,7 +128,7 @@ public class ScimGroupService {
                 db.save(group);
             }
         }
-        return new ScimGroupDto(group);
+        return new ScimGroupDto(group, true);
     }
 
     private User getValidUser(String value) {
@@ -142,7 +145,7 @@ public class ScimGroupService {
     }
 
     public ScimResponseDto getById(String id) {
-        return new ScimGroupDto(getValidGroupById(id));
+        return new ScimGroupDto(getValidGroupById(id), true);
     }
 
     private Group getValidGroupById(String id) {

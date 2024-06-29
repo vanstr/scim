@@ -1,10 +1,15 @@
 package com.scim.impl.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.javafaker.Faker;
 import com.jayway.jsonpath.JsonPath;
+import com.scim.impl.UserDatabase;
 import com.scim.impl.api.dto.ScimGroupDto;
+import com.scim.impl.api.dto.ScimMember;
 import com.scim.impl.api.dto.ScimPatchDto;
 import com.scim.impl.domain.Group;
+import com.scim.impl.domain.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.scim.impl.service.ScimGroupService.PATCH_OP;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -30,6 +36,11 @@ class GroupControllerTest {
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserDatabase userDatabase;
+
+    private Faker faker;
 
     @Transactional
     @Test
@@ -60,13 +71,65 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$.Resources[0].id").exists())
                 .andExpect(jsonPath("$.Resources[0].externalId").value("12345"))
                 .andExpect(jsonPath("$.Resources[0].displayName").value("Administrators"))
+                .andExpect(jsonPath("$.Resources[0].members").isEmpty())
                 .andExpect(jsonPath("$.Resources[0].meta.lastModified").exists())
 
                 .andExpect(jsonPath("$.Resources[1].id").exists())
                 .andExpect(jsonPath("$.Resources[1].externalId").value("5432"))
                 .andExpect(jsonPath("$.Resources[1].displayName").value("Testers"))
+                .andExpect(jsonPath("$.Resources[1].members").isEmpty())
                 .andExpect(jsonPath("$.Resources[1].meta.lastModified").exists());
 
+        String updateNameRequest = getUpdateNameRequest();
+        mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateNameRequest))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.externalId").value("12345"))
+                .andExpect(jsonPath("$.displayName").value("Admins"))
+                .andExpect(jsonPath("$.meta.lastModified").exists());
+
+
+        User user1 = createUser();
+        User user2 = createUser();
+
+        mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(getAddMemberRequest(user1.getId())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(getAddMemberRequest(user2.getId())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/scim/v2/Groups/" + adminGroupId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.externalId").value("12345"))
+                .andExpect(jsonPath("$.displayName").value("Admins"))
+                .andExpect(jsonPath("$.members[0].value").value(user1.getId()))
+                .andExpect(jsonPath("$.members[1].value").value(user2.getId()))
+                .andExpect(jsonPath("$.meta.lastModified").exists());
+    }
+
+    private String getAddMemberRequest(String userId) throws JsonProcessingException {
+        ScimPatchDto scimPatchDto = new ScimPatchDto(
+                List.of(PATCH_OP),
+                List.of(Map.of(
+                        "op", "Add",
+                        "path", "members",
+                        "value", List.of(new ScimMember(null, userId))
+                )
+        ));
+        return OBJECT_MAPPER.writeValueAsString(scimPatchDto);
+
+    }
+
+    private static String getUpdateNameRequest() throws JsonProcessingException {
         ScimPatchDto scimPatchDto = new ScimPatchDto(
                 List.of(PATCH_OP),
                 List.of(Map.of(
@@ -75,16 +138,18 @@ class GroupControllerTest {
                         "value", "Admins")
                 )
         );
-        String updatePayload = OBJECT_MAPPER.writeValueAsString(scimPatchDto);
-        mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(updatePayload))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.externalId").value("12345"))
-                .andExpect(jsonPath("$.displayName").value("Admins"))
-                .andExpect(jsonPath("$.meta.lastModified").exists());
+        return OBJECT_MAPPER.writeValueAsString(scimPatchDto);
+    }
+
+    private User createUser() {
+        faker = new Faker();
+        User entity = new User();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setUserName(faker.name().username());
+        entity.setGivenName(faker.name().firstName());
+        entity.setFamilyName(faker.name().lastName());
+        entity.setActive(true);
+        return userDatabase.save(entity);
     }
 
     private static Group prepareGroup(String name, String externalId) {
@@ -96,7 +161,7 @@ class GroupControllerTest {
     }
 
     private ResultActions createGroup(Group groupEntity) throws Exception {
-        ScimGroupDto group = new ScimGroupDto(groupEntity);
+        ScimGroupDto group = new ScimGroupDto(groupEntity, false);
         String groupjson = OBJECT_MAPPER.writeValueAsString(group);
         ResultActions resultActions = mockMvc.perform(post("/scim/v2/Groups")
                         .contentType(MediaType.APPLICATION_JSON)
