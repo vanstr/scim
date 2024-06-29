@@ -11,8 +11,7 @@ import java.util.List;
 
 
 @Repository
-public interface UserDatabase extends JpaRepository<User, Long> {
-    List<User> findById(String id);
+public interface UserDatabase extends JpaRepository<User, String> {
 
     Page<User> findByUserNameIgnoreCase(@Param("name") String name, Pageable pagable);
 

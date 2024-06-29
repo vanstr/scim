@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import static com.scim.impl.service.Helper.getCount;
 import static com.scim.impl.service.Helper.getStartIndex;
+import static com.scim.impl.service.ScimGroupService.PATCH_OP;
 
 @Component
 @Slf4j
@@ -28,12 +29,12 @@ public class ScimUserService {
 
     public Map<String, Object> getScimUser(String id) {
         log.info("Get user by id {}", id);
-        User user = db.findById(id).get(0);
+        User user = getValidUser(id);
         return user.toScimResource();
     }
 
     public Map<String, Object> update(Map<String, Object> payload, String id) {
-        User user = db.findById(id).get(0);
+        User user = getValidUser(id);
         user.update(payload);
         return user.toScimResource();
     }
@@ -44,7 +45,7 @@ public class ScimUserService {
 
         validation(schema, operations);
 
-        User user = db.findById(id).get(0);
+        User user = getValidUser(id);
 
         for (Map map : operations) {
             if (map.get("op") == null && !map.get("op").equals("replace")) {
@@ -75,9 +76,8 @@ public class ScimUserService {
         if (operations == null) {
             throw new ScimException("Payload must contain operations attribute.", BAD_REQUEST);
         }
-        String schemaPatchOp = "urn:ietf:params:scim:api:messages:2.0:PatchOp";
-        if (!schema.contains(schemaPatchOp)) {
-            throw new ScimException("The 'schemas' type in this request is not supported.", 501);
+        if (!schema.contains(PATCH_OP)) {
+            throw new ScimException("Request must contain correct schema PatchOp.", BAD_REQUEST);
         }
     }
 
@@ -137,7 +137,7 @@ public class ScimUserService {
 
     public Map<String, Object> deleteById(String id) {
         log.info("Delete user by id {}", id);
-        User user = db.findById(id).get(0);
+        User user = getValidUser(id);
         user.active = false;
         User saved = db.save(user);
         return saved.toScimResource();
@@ -166,5 +166,9 @@ public class ScimUserService {
 
         returnValue.put("status", statusCode.orElse(500));
         return returnValue;
+    }
+
+    private User getValidUser(String id) {
+        return db.findById(id).orElseThrow(() -> new ScimException("User not found", HttpStatus.NOT_FOUND.value()));
     }
 }
