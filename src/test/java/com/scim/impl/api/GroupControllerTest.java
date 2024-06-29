@@ -1,7 +1,9 @@
 package com.scim.impl.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
 import com.scim.impl.api.dto.ScimGroupDto;
+import com.scim.impl.api.dto.ScimPatchDto;
 import com.scim.impl.domain.Group;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,8 +14,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import java.util.List;
+import java.util.Map;
+
+import static com.scim.impl.service.ScimGroupService.PATCH_OP;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +46,9 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$.meta.resourceType").value("Group"))
                 .andExpect(jsonPath("$.meta.created").exists());
 
+        String contentAsString = resultActions.andReturn().getResponse().getContentAsString();
+        String adminGroupId = JsonPath.parse(contentAsString).read("$.id", String.class);
+
         Group testersGroup = prepareGroup("Testers", "5432");
         createGroup(testersGroup);
 
@@ -57,8 +65,26 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$.Resources[1].id").exists())
                 .andExpect(jsonPath("$.Resources[1].externalId").value("5432"))
                 .andExpect(jsonPath("$.Resources[1].displayName").value("Testers"))
-                .andExpect(jsonPath("$.Resources[1].meta.lastModified").exists())
-  ;
+                .andExpect(jsonPath("$.Resources[1].meta.lastModified").exists());
+
+        ScimPatchDto scimPatchDto = new ScimPatchDto(
+                List.of(PATCH_OP),
+                List.of(Map.of(
+                        "op", "Replace",
+                        "path", "displayName",
+                        "value", "Admins")
+                )
+        );
+        String updatePayload = OBJECT_MAPPER.writeValueAsString(scimPatchDto);
+        mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updatePayload))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.externalId").value("12345"))
+                .andExpect(jsonPath("$.displayName").value("Admins"))
+                .andExpect(jsonPath("$.meta.lastModified").exists());
     }
 
     private static Group prepareGroup(String name, String externalId) {

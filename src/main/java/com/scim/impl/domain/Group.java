@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Getter
@@ -13,32 +16,35 @@ import java.time.LocalDateTime;
 public class Group {
     @Column(length = 36)
     @Id
-    public String id;
+    private String id;
 
     @Column(length = 36)
-    public String externalId;
+    private String externalId;
 
     @Column
-    public Boolean active = false;
+    private Boolean active = false;
 
     @Column(unique = true, nullable = false, length = 250)
-    public String name;
+    private String name;
 
-    @Column
-    public String members; // TODO add mapping
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "user_group",
+            joinColumns = @JoinColumn(name = "group_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> users = new HashSet<>();
 
-    public String created = LocalDateTime.now().toString();
-    public String lastModified = LocalDateTime.now().toString();
+    private String created = LocalDateTime.now().toString();
+    private String lastModified = LocalDateTime.now().toString();
 
     public Group() {
     }
 
-    public Group(String id, String externalId, Boolean active, String name, String members) {
+    public Group(String id, String externalId, Boolean active, String name) {
         this.id = id;
         this.externalId = externalId;
         this.active = active;
         this.name = name;
-        this.members = members;
     }
 
 

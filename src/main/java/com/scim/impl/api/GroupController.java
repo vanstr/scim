@@ -2,6 +2,7 @@ package com.scim.impl.api;
 
 import com.scim.impl.api.dto.ScimErrorDto;
 import com.scim.impl.api.dto.ScimGroupDto;
+import com.scim.impl.api.dto.ScimPatchDto;
 import com.scim.impl.api.dto.ScimResponseDto;
 import com.scim.impl.service.ScimException;
 import com.scim.impl.service.ScimGroupService;
@@ -75,5 +76,21 @@ public class GroupController {
         }
     }
 
+    @PatchMapping("/{id}")
+    public @ResponseBody ScimResponseDto patchGroup(
+            @RequestBody ScimPatchDto payload,
+            @PathVariable String id,
+            HttpServletResponse response
+    ) {
+        try {
+             return groupService.patch(payload, id);
+        } catch (ScimException se) {
+            response.setStatus(se.getErrorCode());
+            return new ScimErrorDto(se.getMessage(), se.getErrorCode());
+        } catch (Exception e) {
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return new ScimErrorDto("Error" + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
 
 }
