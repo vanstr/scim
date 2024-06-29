@@ -1,6 +1,6 @@
 package com.scim.impl.service;
 
-import com.scim.impl.Database;
+import com.scim.impl.UserDatabase;
 import com.scim.impl.api.dto.UserResponse;
 import com.scim.impl.domain.User;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,7 +24,7 @@ import static com.scim.impl.service.Helper.getStartIndex;
 public class ScimUserService {
 
     public static final int BAD_REQUEST = HttpStatus.BAD_REQUEST.value();
-    private final Database db;
+    private final UserDatabase db;
 
     public Map<String, Object> getScimUser(String id) {
         log.info("Get user by id {}", id);
