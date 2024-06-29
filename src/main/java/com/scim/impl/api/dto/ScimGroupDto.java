@@ -39,6 +39,6 @@ public class ScimGroupDto extends ScimResponseDto {
         meta.put("resourceType", "Group");
         meta.put("created", group.getCreated());
         meta.put("lastModified", group.getLastModified());
-        meta.put("meta", ("/scim/v2/Groups/" + group.getId()));
+        meta.put("location", ("/scim/v2/Groups/" + group.getId()));
     }
 }
