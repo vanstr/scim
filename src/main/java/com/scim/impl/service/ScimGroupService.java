@@ -119,7 +119,6 @@ public class ScimGroupService {
                 }
             }
 
-
             group.setLastModified(LocalDateTime.now().toString());
             db.save(group);
 
@@ -149,8 +148,8 @@ public class ScimGroupService {
         }
     }
 
-    public ScimResponseDto getById(String id) {
-        return new ScimGroupDto(getValidGroupById(id), false);
+    public ScimResponseDto getById(String id, boolean populateMembers) {
+        return new ScimGroupDto(getValidGroupById(id), populateMembers);
     }
 
     public void deleteById(String id) {

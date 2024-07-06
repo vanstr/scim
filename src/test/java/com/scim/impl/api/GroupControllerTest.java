@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -91,18 +92,13 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$.displayName").value("Admins"))
                 .andExpect(jsonPath("$.meta.lastModified").exists());
 
-
         User user1 = createUser();
         User user2 = createUser();
+        User user3 = createUser();
 
         mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(getAddMemberRequest(user1.getId())))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(patch("/scim/v2/Groups/" + adminGroupId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(getAddMemberRequest(user2.getId())))
+                        .content(getAddMemberRequest(user1.getId(), user2.getId())))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/scim/v2/Groups/" + adminGroupId)
@@ -111,18 +107,22 @@ class GroupControllerTest {
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.externalId").value("12345"))
                 .andExpect(jsonPath("$.displayName").value("Admins"))
-                .andExpect(jsonPath("$.members[0].value").value(user1.getId()))
-                .andExpect(jsonPath("$.members[1].value").value(user2.getId()))
+                .andExpect(jsonPath("$.members.length()").value(2))
+                .andExpect(jsonPath("$.members[?(@.value == '" + user1.getId()+"')].type").value("User"))
+                .andExpect(jsonPath("$.members[?(@.value == '" + user2.getId()+"')].type").value("User"))
                 .andExpect(jsonPath("$.meta.lastModified").exists());
     }
 
-    private String getAddMemberRequest(String userId) throws JsonProcessingException {
+    private String getAddMemberRequest(String... userIds) throws JsonProcessingException {
+        List<ScimMember> scimMembers = Arrays.stream(userIds)
+                .map( userId->new ScimMember(null, userId))
+                .toList();
         ScimPatchDto scimPatchDto = new ScimPatchDto(
                 List.of(PATCH_OP),
                 List.of(Map.of(
                         "op", "Add",
                         "path", "members",
-                        "value", List.of(new ScimMember(null, userId))
+                        "value", scimMembers
                 )
         ));
         return OBJECT_MAPPER.writeValueAsString(scimPatchDto);
