@@ -93,4 +93,22 @@ public class GroupController {
         }
     }
 
+    @DeleteMapping("/{id}")
+    public @ResponseBody ScimResponseDto delete(
+            @PathVariable String id,
+            HttpServletResponse response
+    ) {
+        try {
+            groupService.deleteById(id);
+            return null; // TODO
+        } catch (ScimException se) {
+            response.setStatus(se.getErrorCode());
+            log.error("Error ", se);
+            return new ScimErrorDto(se.getMessage(), se.getErrorCode());
+        } catch (Exception e) {
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            log.error("Error ", e);
+            return new ScimErrorDto("Error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+        }
+    }
 }
