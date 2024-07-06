@@ -25,10 +25,13 @@ public class GroupController {
     @GetMapping("/{id}")
     public @ResponseBody ScimResponseDto getGroupById(
             @PathVariable String id,
+            @RequestParam Map<String, String> params,
             HttpServletResponse response
     ) {
         try {
-            return groupService.getById(id);
+            String excludedAttributes = params.get("excludedAttributes");
+            boolean populateMembers = excludedAttributes == null || !excludedAttributes.equals("members");
+            return groupService.getById(id, populateMembers);
         } catch (ScimException se) {
             response.setStatus(se.getErrorCode());
             log.error("Error ", se);
