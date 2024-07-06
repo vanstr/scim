@@ -97,42 +97,56 @@ public class ScimGroupService {
         validate(payload);
 
         Group group = getValidGroupById(id);
-        synchronized (group.getId()) {
-            for (Map<String, Object> map : payload.getOperations()) {
-                Object operation = map.get("op");
-                Object valueObj = map.get("value");
-                if (operation != null && map.get("path") != null && valueObj != null) {
-                    String path = map.get("path").toString();
-                    if (equalIgnoreCase(operation, "add") && Objects.equals(path, "members")) {
-                        List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
-                        members.forEach(member -> {
-                            User user = getValidUser(member.get("value"));
-                            group.getUsers().add(user);
-                        });
-                    } else if (equalIgnoreCase(operation, "remove") && Objects.equals(path, "members")) {
-                        List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
-                        members.forEach(member -> {
-                            group.getUsers().removeIf(user -> user.getId().equals(member.get("value")));
-                        });
-                    } else if (equalIgnoreCase(operation, "replace")) {
-                        String value = valueObj.toString();
-                        if (Objects.equals(path, "displayName")) {
-                            group.setName(value);
-                        } else if (Objects.equals(path, "externalId")) {
-                            group.setExternalId(value);
-                        } else {
-                            throw new ScimException("Unsupported path '" + path + "'", HttpStatus.BAD_REQUEST.value());
-                        }
-                    } else {
-                        throw new ScimException("Unsupported operation '" + operation + "'", HttpStatus.BAD_REQUEST.value());
-                    }
-
-                    group.setLastModified(LocalDateTime.now().toString());
-                    db.save(group);
+        for (Map<String, Object> map : payload.getOperations()) {
+            Object operation = map.get("op");
+            Object valueObj = map.get("value");
+            if (operation == null || map.get("path") == null || valueObj == null) {
+                log.info("Skipping invalid operation: {}", map);
+                continue;
+            }
+            String path = map.get("path").toString();
+            if (Objects.equals(path, "members")) {
+                List<Map<String, String>> values = (List<Map<String, String>>) valueObj;
+                processMemberOperation(values, operation, group);
+            } else {
+                String value = valueObj.toString();
+                if (Objects.equals(path, "displayName") && equalIgnoreCase(operation, "replace")) {
+                    group.setName(value);
+                } else if (Objects.equals(path, "externalId") && equalIgnoreCase(operation, "replace")) {
+                    group.setExternalId(value);
+                } else {
+                    throw new ScimException("Unsupported operation '" + operation + "' on path '" + path + "'", HttpStatus.BAD_REQUEST.value());
                 }
             }
+
+
+            group.setLastModified(LocalDateTime.now().toString());
+            db.save(group);
+
         }
+
         return new ScimGroupDto(group, false);
+    }
+
+    private void processMemberOperation(List<Map<String, String>> members, Object operation, Group group) {
+        if (equalIgnoreCase(operation, "add")) {
+            members.forEach(member -> {
+                User user = getValidUser(member.get("value"));
+                group.getUsers().add(user);
+            });
+        } else if (equalIgnoreCase(operation, "remove")) {
+            members.forEach(member -> {
+                group.getUsers().removeIf(user -> Objects.equals(user.getId(), member.get("value")));
+            });
+        } else if (equalIgnoreCase(operation, "replace")) {
+            group.getUsers().clear();
+            members.forEach(member -> {
+                User user = getValidUser(member.get("value"));
+                group.getUsers().add(user);
+            });
+        } else {
+            throw new ScimException("Unsupported operation '" + operation + "' on path 'members'", HttpStatus.BAD_REQUEST.value());
+        }
     }
 
     public ScimResponseDto getById(String id) {
@@ -140,9 +154,7 @@ public class ScimGroupService {
     }
 
     public void deleteById(String id) {
-        synchronized (id) {
-            db.deleteById(id);
-        }
+        db.deleteById(id);
     }
 
     private static boolean equalIgnoreCase(Object ref, String arg) {
