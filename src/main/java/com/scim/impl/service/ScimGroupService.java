@@ -2,7 +2,10 @@ package com.scim.impl.service;
 
 import com.scim.impl.GroupDatabase;
 import com.scim.impl.UserDatabase;
-import com.scim.impl.api.dto.*;
+import com.scim.impl.api.dto.ScimGroupDto;
+import com.scim.impl.api.dto.ScimListResponseDto;
+import com.scim.impl.api.dto.ScimPatchDto;
+import com.scim.impl.api.dto.ScimResponseDto;
 import com.scim.impl.domain.Group;
 import com.scim.impl.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -94,41 +97,56 @@ public class ScimGroupService {
         validate(payload);
 
         Group group = getValidGroupById(id);
-        for (Map<String, Object> map : payload.getOperations()) {
-            Object operation = map.get("op");
-            Object valueObj = map.get("value");
-            if (operation != null && map.get("path") != null && valueObj != null) {
-                String path = map.get("path").toString();
-                if (Objects.equals(operation, "Add") && Objects.equals(path, "members")) {
-                    List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
-                    members.forEach(member -> {
-                        User user = getValidUser(member.get("value"));
-                        group.getUsers().add(user);
-                    });
-                } else if (Objects.equals(operation, "Remove") && Objects.equals(path, "members")) {
-                    List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
-                    members.forEach(member -> {
-                        group.getUsers().removeIf(user -> user.getId().equals(member.get("value")));
-                    });
-                } else if (operation.equals("Replace")) {
-                    String value = valueObj.toString();
-
-                    if (Objects.equals(path, "displayName")) {
-                        group.setName(value);
-                    } else if (Objects.equals(path, "externalId")) {
-                        group.setExternalId(value);
+        synchronized (group.getId()) {
+            for (Map<String, Object> map : payload.getOperations()) {
+                Object operation = map.get("op");
+                Object valueObj = map.get("value");
+                if (operation != null && map.get("path") != null && valueObj != null) {
+                    String path = map.get("path").toString();
+                    if (equalIgnoreCase(operation, "add") && Objects.equals(path, "members")) {
+                        List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
+                        members.forEach(member -> {
+                            User user = getValidUser(member.get("value"));
+                            group.getUsers().add(user);
+                        });
+                    } else if (equalIgnoreCase(operation, "remove") && Objects.equals(path, "members")) {
+                        List<Map<String, String>> members = (List<Map<String, String>>) valueObj;
+                        members.forEach(member -> {
+                            group.getUsers().removeIf(user -> user.getId().equals(member.get("value")));
+                        });
+                    } else if (equalIgnoreCase(operation, "replace")) {
+                        String value = valueObj.toString();
+                        if (Objects.equals(path, "displayName")) {
+                            group.setName(value);
+                        } else if (Objects.equals(path, "externalId")) {
+                            group.setExternalId(value);
+                        } else {
+                            throw new ScimException("Unsupported path '" + path + "'", HttpStatus.BAD_REQUEST.value());
+                        }
                     } else {
-                        throw new ScimException("Unsupported path '" + path + "'", HttpStatus.BAD_REQUEST.value());
+                        throw new ScimException("Unsupported operation '" + operation + "'", HttpStatus.BAD_REQUEST.value());
                     }
-                } else {
-                    throw new ScimException("Unsupported operation '" + operation + "'", HttpStatus.BAD_REQUEST.value());
-                }
 
-                group.setLastModified(LocalDateTime.now().toString());
-                db.save(group);
+                    group.setLastModified(LocalDateTime.now().toString());
+                    db.save(group);
+                }
             }
         }
-        return new ScimGroupDto(group, true);
+        return new ScimGroupDto(group, false);
+    }
+
+    public ScimResponseDto getById(String id) {
+        return new ScimGroupDto(getValidGroupById(id), false);
+    }
+
+    public void deleteById(String id) {
+        synchronized (id) {
+            db.deleteById(id);
+        }
+    }
+
+    private static boolean equalIgnoreCase(Object ref, String arg) {
+        return ref instanceof String && arg.equalsIgnoreCase((String) ref);
     }
 
     private User getValidUser(String value) {
@@ -142,10 +160,6 @@ public class ScimGroupService {
         if (CollectionUtils.isEmpty(payload.getOperations())) {
             throw new ScimException("Payload must contain operations attribute.", HttpStatus.BAD_REQUEST.value());
         }
-    }
-
-    public ScimResponseDto getById(String id) {
-        return new ScimGroupDto(getValidGroupById(id), true);
     }
 
     private Group getValidGroupById(String id) {
