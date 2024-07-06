@@ -44,13 +44,16 @@ public class User {
 
     public void update(Map<String, Object> resource) {
         try {
-            Map<String, Object> names = (Map<String, Object>) resource.get("name");
-            for (String subName : names.keySet()) {
-                switch (subName) {
-                    case "givenName" -> this.givenName = names.get(subName).toString();
-                    case "familyName" -> this.familyName = names.get(subName).toString();
-                    case "middleName" -> this.middleName = names.get(subName).toString();
-                    default -> {
+            if (resource.get("name") != null) {
+
+                Map<String, Object> names = (Map<String, Object>) resource.get("name");
+                for (String subName : names.keySet()) {
+                    switch (subName) {
+                        case "givenName" -> this.givenName = names.get(subName).toString();
+                        case "familyName" -> this.familyName = names.get(subName).toString();
+                        case "middleName" -> this.middleName = names.get(subName).toString();
+                        default -> {
+                        }
                     }
                 }
             }

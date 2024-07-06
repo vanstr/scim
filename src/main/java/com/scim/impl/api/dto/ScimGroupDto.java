@@ -2,6 +2,7 @@ package com.scim.impl.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.scim.impl.domain.Group;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,7 @@ import java.util.*;
 
 @Getter
 @Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @AllArgsConstructor(onConstructor = @__(@JsonCreator(mode = JsonCreator.Mode.PROPERTIES)))
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ScimGroupDto extends ScimResponseDto {
